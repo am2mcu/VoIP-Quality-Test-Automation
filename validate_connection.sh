@@ -64,15 +64,7 @@ parse_hostname() {
     echo $1 | sed 's/:/ /'
 }
 
-main() {
-    local switch_hosts=($(parse_hostname $1) $(parse_hostname $2))
-    local user_hosts=($(parse_hostname $3) $(parse_hostname $4))
-
-    check_permission
-    check_network
-
-    install_package $PACKAGE_NAME
-
+check_call() {
     for ((i = 0; i < ${#user_hosts[@]}; i += 2)); do
         log "INFO" "${switch_hosts[$i]} ${switch_hosts[$i + 1]} > ${user_hosts[$i]} ${user_hosts[$i + 1]}"
         validate_connection \
@@ -84,6 +76,18 @@ main() {
             ${user_hosts[$i]} ${user_hosts[$i + 1]} \
             ${switch_hosts[$i]} ${switch_hosts[$i + 1]}
     done
+}
+
+main() {
+    switch_hosts=($(parse_hostname $1) $(parse_hostname $2))
+    user_hosts=($(parse_hostname $3) $(parse_hostname $4))
+
+    check_permission
+    check_network
+
+    install_package $PACKAGE_NAME
+
+    check_call
 }
 
 main $1 $2 $3 $4
