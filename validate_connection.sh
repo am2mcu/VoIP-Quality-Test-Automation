@@ -46,21 +46,44 @@ validate_connection() {
 
     local timeout_time=5
 
-    if ! timeout $timeout_time \
+    if timeout $timeout_time \
         tcpdump -q -n -c1 -i $INTERFACE \
         "(src host $src_ip && src port $src_port) && (dst host $dst_ip && dst port $dst_port)" \
-        &> /dev/null; then
-            log "ERROR" "No connection stablished"
+        &>/dev/null; then
+
+        log "INFO" "Connection stablished"
+        return 0
+    else
+        log "ERROR" "No connection stablished"
+        return 1
     fi
 }
 
+parse_hostname() {
+    # convert ip:port to (ip port)
+    echo $1 | sed 's/:/ /'
+}
+
 main() {
+    local switch_hosts=($(parse_hostname $1) $(parse_hostname $2))
+    local user_hosts=($(parse_hostname $3) $(parse_hostname $4))
+
     check_permission
     check_network
 
     install_package $PACKAGE_NAME
 
-    validate_connection "192.168.4.131" "80" "1.1.1.1" "80"
+    for ((i = 0; i < ${#user_hosts[@]}; i += 2)); do
+        log "INFO" "${switch_hosts[$i]} ${switch_hosts[$i + 1]} > ${user_hosts[$i]} ${user_hosts[$i + 1]}"
+        validate_connection \
+            ${switch_hosts[$i]} ${switch_hosts[$i + 1]} \
+            ${user_hosts[$i]} ${user_hosts[$i + 1]}
+
+        log "INFO" "${switch_hosts[$i]} ${switch_hosts[$i + 1]} < ${user_hosts[$i]} ${user_hosts[$i + 1]}"
+        validate_connection \
+            ${user_hosts[$i]} ${user_hosts[$i + 1]} \
+            ${switch_hosts[$i]} ${switch_hosts[$i + 1]}
+    done
 }
 
-main
+main $1 $2 $3 $4
