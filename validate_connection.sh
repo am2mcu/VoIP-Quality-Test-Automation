@@ -44,9 +44,12 @@ validate_connection() {
     local dst_ip=$3
     local dst_port=$4
 
-    if !timeout 5 \
+    local timeout_time=5
+
+    if ! timeout $timeout_time \
         tcpdump -q -n -c1 -i $INTERFACE \
-        "(src host $src_ip && src port $src_port) && (dst host $dst_ip && dst port $dst_port)"; then
+        "(src host $src_ip && src port $src_port) && (dst host $dst_ip && dst port $dst_port)" \
+        &> /dev/null; then
             log "ERROR" "No connection stablished"
     fi
 }
@@ -57,7 +60,7 @@ main() {
 
     install_package $PACKAGE_NAME
 
-    # validate_connection "192.168.4.131" "" "1.1.1.1" ""
+    validate_connection "192.168.4.131" "80" "1.1.1.1" "80"
 }
 
 main
