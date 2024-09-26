@@ -47,10 +47,7 @@ calculate_loss() {
 
 calculate_mos() {
     rtt=$(calculate_rtt)
-    echo $rtt
     jitter=$(calculate_jitter)
-    echo $jitter
-    exit
     loss=$(calculate_loss)
 
     local effective_rtt=$((rtt + jitter * 2 + 10))
