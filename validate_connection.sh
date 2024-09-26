@@ -12,7 +12,11 @@ log() {
     [[ ${log_levels[$log_priority]} ]] || return 1
     ((${log_levels[$log_priority]} < ${log_levels[$LOG_LEVEL]})) && return 2
 
-    echo -e "${log_priority}: ${log_msg}"
+    echo -e "[${log_priority}] ${log_msg}"
+}
+
+print_usage() {
+    echo "Usage: validate_connection [ip:port] [ip:port] [ip:port] [ip:port]"
 }
 
 check_permission() {
@@ -89,5 +93,10 @@ main() {
 
     check_call
 }
+
+if [[ $# != 4 ]]; then
+    print_usage
+    exit 1
+fi
 
 main $1 $2 $3 $4
