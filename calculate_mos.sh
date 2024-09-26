@@ -19,13 +19,14 @@ print_usage() {
 
 calculate_rtt() {
     local rtt_list=$(
-        tcpdump -r "$pcap_path" src port 21134 -ttt --print |
+        echo "$pcap_output" |
             awk '{print $1}' | xargs -I {} date -d "1970-01-01 {} Z" '+%s%3N'
     )
     local rtt_sum=$(echo "$rtt_list" | paste -sd+ | bc)
     local rtt_num=$(echo "$rtt_list" | wc -l)
 
-    echo $((rtt_sum / rtt_num))
+    rtt=$((rtt_sum / rtt_num))
+    echo $rtt
 }
 
 calculate_jitter() {
@@ -37,9 +38,9 @@ calculate_loss() {
 }
 
 calculate_mos() {
-    local rtt=$(calculate_rtt)
-    local jitter=$(calculate_jitter)
-    local loss=$(calculate_loss)
+    rtt=$(calculate_rtt)
+    jitter=$(calculate_jitter)
+    loss=$(calculate_loss)
 
     local effective_rtt=$((rtt + jitter * 2 + 10))
     local r_factor
@@ -54,12 +55,12 @@ calculate_mos() {
     echo $mos
 }
 
-main() {
-    pcap_path="/home/am2mcu/Downloads/Telegram Desktop/onestream.pcap"
-    calculate_rtt
-    exit
+read_pcap() {
+    pcap_output=$(tcpdump -r "$pcap_path" src port 21134 -ttt --print)
+}
 
-    pcap_path=$1
+main() {
+    pcap_path="$1"
     if [[ -z $pcap_path ]]; then
         print_usage
         exit 1
@@ -68,7 +69,8 @@ main() {
         exit 1
     fi
 
+    read_pcap
     calculate_mos
 }
 
-main $1
+main "$1"
