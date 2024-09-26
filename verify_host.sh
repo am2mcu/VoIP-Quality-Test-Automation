@@ -3,6 +3,7 @@
 LOG_LEVEL="INFO"
 PACKAGE_NAME="tcpdump"
 INTERFACE="any"
+TCPDUMP_TIMEOUT=5
 
 log() {
     declare -A log_levels=([DEBUG]=0 [INFO]=1 [WARN]=2 [ERROR]=3 [CRIT]=4)
@@ -48,9 +49,7 @@ verify_host_connection() {
     local dst_ip=$3
     local dst_port=$4
 
-    local timeout_time=5
-
-    if timeout $timeout_time \
+    if timeout $TCPDUMP_TIMEOUT \
         tcpdump -q -n -c1 -i $INTERFACE \
         "(src host $src_ip && src port $src_port) && (dst host $dst_ip && dst port $dst_port)" \
         &>/dev/null; then
@@ -68,15 +67,35 @@ parse_hostname() {
     echo $1 | sed 's/:/ /'
 }
 
+save_packets() {
+    local src_ip=$1
+    local src_port=$2
+    local dst_ip=$3
+    local dst_port=$4
+
+    local pcap_path="/tmp/${src_ip}.${src_port}_${dst_ip}.${dst_port}.pcap"
+
+    # create .pcap files for root instead of tcpdump
+    timeout $TCPDUMP_TIMEOUT \
+        tcpdump -i $INTERFACE -w $pcap_path -Z root \
+        "(src host $src_ip && src port $src_port) && (dst host $dst_ip && dst port $dst_port)" &> /dev/null
+}
+
 check_call() {
     for ((i = 0; i < ${#user_hosts[@]}; i += 2)); do
         log "INFO" "${switch_hosts[$i]} ${switch_hosts[$i + 1]} > ${user_hosts[$i]} ${user_hosts[$i + 1]}"
         verify_host_connection \
             ${switch_hosts[$i]} ${switch_hosts[$i + 1]} \
             ${user_hosts[$i]} ${user_hosts[$i + 1]}
+        save_packets \
+            ${switch_hosts[$i]} ${switch_hosts[$i + 1]} \
+            ${user_hosts[$i]} ${user_hosts[$i + 1]}
 
         log "INFO" "${switch_hosts[$i]} ${switch_hosts[$i + 1]} < ${user_hosts[$i]} ${user_hosts[$i + 1]}"
         verify_host_connection \
+            ${user_hosts[$i]} ${user_hosts[$i + 1]} \
+            ${switch_hosts[$i]} ${switch_hosts[$i + 1]}
+        save_packets \
             ${user_hosts[$i]} ${user_hosts[$i + 1]} \
             ${switch_hosts[$i]} ${switch_hosts[$i + 1]}
     done
