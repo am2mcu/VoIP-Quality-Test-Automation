@@ -25,7 +25,6 @@ calculate_rtt() {
     local rtt_sum=$(echo "$rtt_list" | paste -sd+ | bc)
     local rtt_num=$(echo "$rtt_list" | wc -l)
 
-    rtt=$((rtt_sum / rtt_num))
     echo $rtt
 }
 
