@@ -16,7 +16,7 @@ log() {
 }
 
 print_usage() {
-    echo "Usage: validate_connection [ip:port] [ip:port] [ip:port] [ip:port]"
+    echo "Usage: verify_host_connection [ip:port] [ip:port] [ip:port] [ip:port]"
 }
 
 check_permission() {
@@ -42,7 +42,7 @@ install_package() {
     fi
 }
 
-validate_connection() {
+verify_host_connection() {
     local src_ip=$1
     local src_port=$2
     local dst_ip=$3
@@ -71,12 +71,12 @@ parse_hostname() {
 check_call() {
     for ((i = 0; i < ${#user_hosts[@]}; i += 2)); do
         log "INFO" "${switch_hosts[$i]} ${switch_hosts[$i + 1]} > ${user_hosts[$i]} ${user_hosts[$i + 1]}"
-        validate_connection \
+        verify_host_connection \
             ${switch_hosts[$i]} ${switch_hosts[$i + 1]} \
             ${user_hosts[$i]} ${user_hosts[$i + 1]}
 
         log "INFO" "${switch_hosts[$i]} ${switch_hosts[$i + 1]} < ${user_hosts[$i]} ${user_hosts[$i + 1]}"
-        validate_connection \
+        verify_host_connection \
             ${user_hosts[$i]} ${user_hosts[$i + 1]} \
             ${switch_hosts[$i]} ${switch_hosts[$i + 1]}
     done
