@@ -20,17 +20,25 @@ print_usage() {
 calculate_rtt() {
     local rtt_list=$(
         echo "$pcap_output" |
-            awk '{print $1}' | xargs -I {} date -d "1970-01-01 {} Z" '+%s%3N'
+            awk '{print $1}' | xargs -I _ date -d "1970-01-01 _ Z" '+%s%3N'
     )
     local rtt_sum=$(echo "$rtt_list" | paste -sd+ | bc)
     local rtt_num=$(echo "$rtt_list" | wc -l)
 
-    rtt=$((rtt_sum / rtt_num))
-    echo $rtt
+    echo $((rtt_sum / rtt_num))
 }
 
 calculate_jitter() {
-    echo
+    local jitter_list=$(
+        echo "$pcap_output" |
+            awk '{print $1}' | xargs -I _ date -d "1970-01-01 _ Z" '+%s%3N' |
+            xargs -I _ echo "(_ - $rtt) * (_ - $rtt)" | bc
+    )
+    local jitter_sum=$(echo "$jitter_list" | paste -sd+ | bc)
+    local jitter_num=$(echo "$jitter_list" | wc -l)
+
+
+    echo "sqrt($jitter_sum / $jitter_num)" | bc
 }
 
 calculate_loss() {
@@ -39,7 +47,10 @@ calculate_loss() {
 
 calculate_mos() {
     rtt=$(calculate_rtt)
+    echo $rtt
     jitter=$(calculate_jitter)
+    echo $jitter
+    exit
     loss=$(calculate_loss)
 
     local effective_rtt=$((rtt + jitter * 2 + 10))
