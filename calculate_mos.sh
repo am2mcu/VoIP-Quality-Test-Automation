@@ -42,7 +42,26 @@ calculate_jitter() {
 }
 
 calculate_loss() {
-    echo
+    local id_list=$(
+        tcpdump -r "$pcap_path" src port 21134 -v --print |
+            awk '{for(i=1; i<=NF; i++) {if($i=="id") print substr($(i+1),1,length($(i+1)-1))}}'
+    )
+
+    local packet_id=$(echo "$id_list" | head -n 1)
+    local sent_packets=0
+    local lost_packets=0
+    while IFS= read -r line; do
+        while [[ $packet_id != $line ]]; do
+            lost_packets=$((lost_packets + 1))
+            packet_id=$((packet_id + 1))
+        done
+
+        sent_packets=$((sent_packets + 1))
+        packet_id=$((packet_id + 1))
+    done <<< "$id_list"
+
+    echo "$sent_packets $lost_packets"
+    echo $((lost_packets * 100 / (sent_packets + lost_packets)))
 }
 
 calculate_mos() {
