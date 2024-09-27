@@ -69,7 +69,6 @@ calculate_mos() {
     fi
     r_factor=$(bc <<< "scale=2; $r_factor - ($loss * 2.5)")
 
-    # bc: True = 1, False = 0
     if [[ $(bc <<< "$r_factor < 0") -eq 1 ]]; then
         mos=1
     elif [[ $(bc <<< "$r_factor >= 100") -eq 1 ]]; then
