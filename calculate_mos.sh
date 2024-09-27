@@ -42,9 +42,8 @@ calculate_jitter() {
 }
 
 calculate_loss() {
-    # 53938
     local id_list=$(
-        tcpdump -r "$pcap_path" src port 53938 -v --print |
+        tcpdump -r "$pcap_path" src port 21134 -v --print |
             awk '{for(i=1; i<=NF; i++) {if($i=="id") print substr($(i+1),1,length($(i+1)-1))}}'
     )
 
@@ -70,11 +69,10 @@ calculate_mos() {
     fi
     r_factor=$(bc <<< "scale=2; $r_factor - ($loss * 2.5)")
 
-    local mos
     # bc: True = 1, False = 0
-    if ! bc <<< "$r_factor < 0"; then
+    if [[ $(bc <<< "$r_factor < 0") -eq 1 ]]; then
         mos=1
-    elif ! bc <<< "$r_factor >= 100"; then
+    elif [[ $(bc <<< "$r_factor >= 100") -eq 1 ]]; then
         mos=4.5
     else
         mos=$(
@@ -84,8 +82,30 @@ calculate_mos() {
     echo $mos
 }
 
+calculate_quality() {
+    local mos_rounded=$(printf '%.*f\n' 0 $mos)
+
+    case "$mos_rounded" in
+        1)
+            echo "Bad"
+            ;;
+        2)
+            echo "Poor"
+            ;;
+        3)
+            echo "Fair"
+            ;;
+        4)
+            echo "Good"
+            ;;
+        5)
+            echo "Excellent"
+            ;;
+    esac
+}
+
 read_pcap() {
-    pcap_output=$(tcpdump -r "$pcap_path" src port 53938 -ttt --print)
+    pcap_output=$(tcpdump -r "$pcap_path" src port 21134 -ttt --print)
 }
 
 main() {
@@ -100,6 +120,8 @@ main() {
 
     read_pcap
     calculate_mos
+
+    calculate_quality
 }
 
 main "$1"
