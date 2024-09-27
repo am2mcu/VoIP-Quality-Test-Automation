@@ -42,26 +42,18 @@ calculate_jitter() {
 }
 
 calculate_loss() {
+    # 53938
     local id_list=$(
-        tcpdump -r "$pcap_path" src port 21134 -v --print |
+        tcpdump -r "$pcap_path" src port 53938 -v --print |
             awk '{for(i=1; i<=NF; i++) {if($i=="id") print substr($(i+1),1,length($(i+1)-1))}}'
     )
 
-    local packet_id=$(echo "$id_list" | head -n 1)
-    local sent_packets=0
-    local lost_packets=0
-    while IFS= read -r line; do
-        while [[ $packet_id != $line ]]; do
-            lost_packets=$((lost_packets + 1))
-            packet_id=$((packet_id + 1))
-        done
+    local first_id=$(echo "$id_list" | head -n 1)
+    local last_id=$(echo "$id_list" | tail -n 1)
+    local packets_num=$((last_id - first_id + 1))
+    local packets_sent=$(echo "$id_list" | wc -l)
 
-        sent_packets=$((sent_packets + 1))
-        packet_id=$((packet_id + 1))
-    done <<< "$id_list"
-
-    echo "$sent_packets $lost_packets"
-    echo $((lost_packets * 100 / (sent_packets + lost_packets)))
+    echo $(((packets_num - packets_sent) * 100 / packets_num))
 }
 
 calculate_mos() {
@@ -71,19 +63,29 @@ calculate_mos() {
 
     local effective_rtt=$((rtt + jitter * 2 + 10))
     local r_factor
-    if [[ $effective_rtt < 160 ]]; then
-        r_factor=$((93.2 - effective_rtt / 40))
+    if [[ $effective_rtt -lt 160 ]]; then
+        r_factor=$(bc <<< "scale=2; 93.2 - ($effective_rtt / 40)")
     else
-        r_factor=$((93.2 - (effective_rtt - 120) / 10))
+        r_factor=$(bc <<< "scale=2; 93.2 - ($effective_rtt - 120) / 10")
     fi
-    r_factor=$((r_factor - (loss * 2.5)))
+    r_factor=$(bc <<< "scale=2; $r_factor - ($loss * 2.5)")
 
-    local mos=$((1 + (r_factor * 0.035) + r_factor * (r_factor - 60) * (100 - r_factor) * 0.000007))
+    local mos
+    # bc: True = 1, False = 0
+    if ! bc <<< "$r_factor < 0"; then
+        mos=1
+    elif ! bc <<< "$r_factor >= 100"; then
+        mos=4.5
+    else
+        mos=$(
+            bc <<< "scale=2; 1 + ($r_factor * 0.035) + $r_factor * ($r_factor - 60) * (100 - $r_factor) * 0.000007"
+        )
+    fi
     echo $mos
 }
 
 read_pcap() {
-    pcap_output=$(tcpdump -r "$pcap_path" src port 21134 -ttt --print)
+    pcap_output=$(tcpdump -r "$pcap_path" src port 53938 -ttt --print)
 }
 
 main() {
