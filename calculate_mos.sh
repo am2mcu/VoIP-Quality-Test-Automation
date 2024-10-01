@@ -43,7 +43,7 @@ calculate_jitter() {
 
 calculate_loss() {
     local id_list=$(
-        tcpdump -r "$pcap_path" src port 21134 -v --print |
+        tcpdump -r "$pcap_path" -v --print |
             awk '{for(i=1; i<=NF; i++) {if($i=="id") print substr($(i+1),1,length($(i+1)-1))}}'
     )
 
@@ -104,7 +104,7 @@ calculate_quality() {
 }
 
 read_pcap() {
-    pcap_output=$(tcpdump -r "$pcap_path" src port 21134 -ttt --print)
+    pcap_output=$(tcpdump -r "$pcap_path" -ttt --print)
 }
 
 main() {
