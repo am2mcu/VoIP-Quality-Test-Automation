@@ -43,8 +43,7 @@ calculate_jitter() {
 
 calculate_loss() {
     local id_list=$(
-        echo "$pcap_output" |
-            awk '{for(i=1; i<=NF; i++) {if($i=="id") print substr($(i+1),1,length($(i+1)-1))}}'
+        echo "$pcap_output" | awk '{print $(NF-1)}'
     )
 
     local first_id=$(echo "$id_list" | head -n 1)
@@ -104,8 +103,7 @@ calculate_quality() {
 }
 
 read_pcap() {
-    # Concat every 2 lines to process it 
-    pcap_output=$(tcpdump -r "$pcap_path" -v -ttt --print | paste -d " " - -)
+    pcap_output=$(tcpdump -r "$pcap_path" -T rtp -ttt --print)
 }
 
 main() {
