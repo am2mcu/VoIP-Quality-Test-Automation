@@ -20,7 +20,7 @@ print_usage() {
 calculate_rtt() {
     local rtt_list=$(
         echo "$pcap_output" |
-            awk '{print $1}' | xargs -I _ date -d "1970-01-01 _ Z" '+%s%3N'
+            awk '{print $1}' | xargs -I _ date -d "1970-01-01 _ Z" '+%s%3N' 2> /dev/null
     )
     local rtt_sum=$(echo "$rtt_list" | paste -sd+ | bc)
     local rtt_num=$(echo "$rtt_list" | wc -l)
@@ -31,7 +31,7 @@ calculate_rtt() {
 calculate_jitter() {
     local jitter_list=$(
         echo "$pcap_output" |
-            awk '{print $1}' | xargs -I _ date -d "1970-01-01 _ Z" '+%s%3N' |
+            awk '{print $1}' | xargs -I _ date -d "1970-01-01 _ Z" '+%s%3N' 2> /dev/null |
             xargs -I _ echo "(_ - $rtt) * (_ - $rtt)" | bc
     )
     local jitter_sum=$(echo "$jitter_list" | paste -sd+ | bc)
@@ -43,7 +43,7 @@ calculate_jitter() {
 
 calculate_loss() {
     local id_list=$(
-        tcpdump -r "$pcap_path" -v --print |
+        echo "$pcap_output" |
             awk '{for(i=1; i<=NF; i++) {if($i=="id") print substr($(i+1),1,length($(i+1)-1))}}'
     )
 
@@ -104,7 +104,8 @@ calculate_quality() {
 }
 
 read_pcap() {
-    pcap_output=$(tcpdump -r "$pcap_path" -ttt --print)
+    # Concat every 2 lines to process it 
+    pcap_output=$(tcpdump -r "$pcap_path" -v -ttt --print | paste -d " " - -)
 }
 
 main() {
